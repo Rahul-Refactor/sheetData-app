@@ -57,7 +57,8 @@ const GoogleSheetData: FC<IGoogleSheetData> = (_props) => {
   const [initialData, setInitialData] = useState<SheetDataType[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [length, setLength] = useState(0);
-  const [tagRole, setTagRole] = useState<string[]>([]);
+  const [tagValue, setTagValue] = useState<Array<keyof SheetDataType>>([]);
+  const [tagKeys, setTagKeys] = useState<Array<keyof SheetDataType>>([]);
 
   const getSheetData = () => {
     Papa.parse(
@@ -189,80 +190,77 @@ const GoogleSheetData: FC<IGoogleSheetData> = (_props) => {
     setGoogleSheetdata(tempArr);
   };
 
-  const Role_options: SelectData[] = [];
+  const showTagsFunc = (value: keyof SheetDataType) => {
+    const _options: SelectData[] = [];
 
-  initialData.forEach((item, index) => {
-    if (!Role_options.some((val: SelectData) => val.label === item.Role)) {
-      Role_options.push({
-        label: item.Role,
-        value: item.Role,
-      });
+    initialData.forEach((item, index) => {
+      if (!_options.some((val: SelectData) => val.label === item[value])) {
+        _options.push({
+          label: item[value],
+          value: item[value],
+        });
+      }
+    });
+    return _options;
+  };
+  // search filter
+
+  const handleTagSearch = (
+    keys: keyof SheetDataType,
+    value: keyof SheetDataType
+  ) => {
+    let updatedStudents = [];
+
+    const tagVal = [...tagValue, value];
+    const tagKey = [...tagKeys, keys];
+    setTagKeys(tagKey);
+    setTagValue(tagVal);
+    if (!tagKey.length && !tagVal.length) {
+      studentInfoForm.setFieldValue("studentInfoList", initialData);
     }
-  });
-  const Location_options: SelectData[] = [];
-
-  initialData.forEach((item, index) => {
-    if (
-      !Location_options.some((val: SelectData) => val.label === item.Location)
-    ) {
-      Location_options.push({
-        label: item.Location,
-        value: item.Location,
+    if (tagKey.length === 1) {
+      updatedStudents = initialData.filter((item) => {
+        return item[tagKey[0]] === tagVal[0];
       });
+      setLength(updatedStudents.length);
+
+      studentInfoForm.setFieldValue("studentInfoList", updatedStudents);
     }
-  });
-  const GraduationYear_options: SelectData[] = [];
 
-  initialData.forEach((item, index) => {
-    if (
-      !GraduationYear_options.some(
-        (val: SelectData) => val.label === item.Graduation_Year
-      )
-    ) {
-      GraduationYear_options.push({
-        label: item.Graduation_Year,
-        value: item.Graduation_Year,
+    if (tagKey.length === 2) {
+      updatedStudents = initialData.filter((item) => {
+        return item[tagKey[0]] === tagVal[0] && item[tagKey[1]] === tagVal[1];
       });
+      setLength(updatedStudents.length);
+      studentInfoForm.setFieldValue("studentInfoList", updatedStudents);
     }
-  });
-  const Experience_options: SelectData[] = [];
 
-  initialData.forEach((item, index) => {
-    if (
-      !Experience_options.some(
-        (val: SelectData) => val.label === item.Experience
-      )
-    ) {
-      Experience_options.push({
-        label: item.Experience,
-        value: item.Experience,
+    if (tagKey.length === 3) {
+      updatedStudents = initialData.filter((item: any) => {
+        return (
+          item[tagKey[0]] === tagVal[0] &&
+          item[tagKey[1]] === tagVal[1] &&
+          item[tagKey[2]] === tagVal[2]
+        );
       });
+      setLength(updatedStudents.length);
+      studentInfoForm.setFieldValue("studentInfoList", updatedStudents);
     }
-  });
-
-  const handleRoleSearch = (value: string) => {
-    if (!value) {
-      getSheetData();
-    } else {
-      setTagRole([...tagRole, value]);
-      let searchedStudentArray: SheetDataType[] = [];
-
-      searchedStudentArray = initialData.filter((item, index) => {
-        if (
-          item.Role === value ||
-          item.Experience === value ||
-          item.Graduation_Year === value ||
-          item.Location === value ||
-          item.Name?.toLowerCase().includes(`${value.toLowerCase()}`)
-        ) {
-          return item;
-        }
+    if (tagKey.length === 4) {
+      updatedStudents = initialData.filter((item: any) => {
+        return (
+          item[tagKey[0]] === tagVal[0] &&
+          item[tagKey[1]] === tagVal[1] &&
+          item[tagKey[2]] === tagVal[2] &&
+          item[tagKey[1]] === tagVal[1]
+        );
       });
-      studentInfoForm.setFieldValue("studentInfoList", searchedStudentArray);
-
-      setLength(studentInfoForm.getFieldValue("studentInfoList").length);
+      setLength(updatedStudents.length);
+      studentInfoForm.setFieldValue("studentInfoList", updatedStudents);
     }
   };
+  // item.Name?.toLowerCase().includes(`${value.toLowerCase()}`)
+
   const showModal = () => {
     if (googleSheetdata.length) {
       setIsModalOpen(true);
@@ -271,10 +269,12 @@ const GoogleSheetData: FC<IGoogleSheetData> = (_props) => {
   const handleCancel = () => {
     setIsModalOpen(false);
   };
-  const onCloseTag = (e: React.MouseEvent<HTMLElement>) => {
-    // setTagRole()
-    console.log(e);
-  };
+  // const handleClose = (removedTag: keyof SheetDataType) => {
+  //   const newTags = tagValue.filter((tag) => tag !== removedTag);
+  //   //  setTagKeys()
+  //   setTagValue(newTags);
+  //   console.log(removedTag);
+  // };
 
   return (
     <GoogleSheetDataContainer>
@@ -285,31 +285,39 @@ const GoogleSheetData: FC<IGoogleSheetData> = (_props) => {
         <PlacementIcon />
         <div> {"PLACEMENT SUMMARY"}</div>
       </div>
-      <div className="search-bar-container">
+      {/* <div className="search-bar-container">
         <Input.Search onSearch={handleRoleSearch} />
-      </div>
+      </div> */}
       <div className="filter-length-container">
         <div className="filter-container">
           <FilterIcon />
           <Select
-            onChange={handleRoleSearch}
+            onChange={(e) => {
+              handleTagSearch("Role", e as keyof SheetDataType);
+            }}
             value={"Role"}
-            options={Role_options}
+            options={showTagsFunc("Role")}
           />
           <Select
-            onChange={handleRoleSearch}
+            onChange={(e) => {
+              handleTagSearch("Location", e as keyof SheetDataType);
+            }}
             value={"Location"}
-            options={Location_options}
+            options={showTagsFunc("Location")}
           />
           <Select
-            onChange={handleRoleSearch}
-            value={"Graduation year"}
-            options={GraduationYear_options}
+            onChange={(e) => {
+              handleTagSearch("Graduation_Year", e as keyof SheetDataType);
+            }}
+            value={"Graduation_Year"}
+            options={showTagsFunc("Graduation_Year")}
           />
           <Select
-            onChange={handleRoleSearch}
+            onChange={(e) => {
+              handleTagSearch("Experience", e as keyof SheetDataType);
+            }}
             value={"Experience"}
-            options={Experience_options}
+            options={showTagsFunc("Experience")}
           />
         </div>
         <div>
@@ -318,15 +326,21 @@ const GoogleSheetData: FC<IGoogleSheetData> = (_props) => {
         </div>
       </div>
       <div className="tagRole">
-        {tagRole.map((item, index) => {
+        {tagValue.map((item, index) => {
           return (
-            <Tag closable onClose={onCloseTag}>
-              {tagRole[index]}
+            <Tag
+              closable
+              onClose={(e) => {
+                e.preventDefault();
+                // handleClose(item);
+              }}
+            >
+              {tagValue[index]}
             </Tag>
           );
         })}
       </div>
-      {tagRole.length ? (
+      {tagValue.length ? (
         <div className="Divider1">
           <Divider />
         </div>
